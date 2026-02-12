@@ -9,30 +9,24 @@ jobs:
     steps:
       - name: Configure Core RDP Settings
         run: |
-          # Buka akses RDP & matikan NLA biar koneksi lebih lancar
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0 -Force
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0 -Force
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "SecurityLayer" -Value 0 -Force
-          
-          # Firewall: Izinkan port 3389
           netsh advfirewall firewall delete rule name="RDP-Tailscale"
           netsh advfirewall firewall add rule name="RDP-Tailscale" dir=in action=allow protocol=TCP localport=3389
-          
-          # Restart Service RDP
           Restart-Service -Name TermService -Force
 
       - name: Create RDP User Rapzz
         run: |
-          # Password statis sesuai request
-          $password = "RapzzPw"
+          # Password diubah sedikit agar lolos kebijakan kompleksitas Windows
+          $password = "RapzzPw123!" 
           $securePass = ConvertTo-SecureString $password -AsPlainText -Force
           
-          # Eksekusi pembuatan user
-          New-LocalUser -Name "Rapzz" -Password $securePass -AccountNeverExpires
+          # Buat user baru
+          New-LocalUser -Name "Rapzz" -Password $securePass -Description "RDP User" -AccountNeverExpires
           Add-LocalGroupMember -Group "Administrators" -Member "Rapzz"
           Add-LocalGroupMember -Group "Remote Desktop Users" -Member "Rapzz"
           
-          # Simpan info login ke Environment
           echo "RDP_USER=Rapzz" >> $env:GITHUB_ENV
           echo "RDP_PASS=$password" >> $env:GITHUB_ENV
 
@@ -46,10 +40,7 @@ jobs:
 
       - name: Establish Tailscale Connection
         run: |
-          # Gunakan Auth Key dari Secrets GitHub
           & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=rapzz-runner
-          
-          # Ambil IP Tailscale
           $tsIP = $null
           $retries = 0
           while (-not $tsIP -and $retries -lt 10) {
@@ -63,16 +54,14 @@ jobs:
       - name: Maintain Connection & Show Info
         run: |
           Write-Host "`n==============================" -ForegroundColor Cyan
-          Write-Host "   RDP READY TO CONNECT!" -ForegroundColor Green
+          Write-Host "   RDP READY! LOGIN DETAILS:" -ForegroundColor Green
           Write-Host "==============================" -ForegroundColor Cyan
           Write-Host "IP Address : $env:TAILSCALE_IP"
           Write-Host "Username   : $env:RDP_USER"
           Write-Host "Password   : $env:RDP_PASS"
           Write-Host "==============================`n"
-          
-          # Loop supaya runner nggak mati (max 6 jam sesuai timeout)
           while ($true) {
             $date = Get-Date -Format "HH:mm:ss"
-            Write-Host "[$date] Connection Active - Keep it rolling!"
+            Write-Host "[$date] Runner is alive..."
             Start-Sleep -Seconds 300
           }

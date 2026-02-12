@@ -7,6 +7,17 @@ jobs:
     timeout-minutes: 3600
 
     steps:
+      - name: Disable Windows Password Complexity
+        run: |
+          # Export policy saat ini ke file teks
+          secedit /export /cfg config.inf
+          # Ganti nilai PasswordComplexity dari 1 (on) ke 0 (off)
+          (Get-Content config.inf) -replace 'PasswordComplexity = 1', 'PasswordComplexity = 0' | Set-Content config.inf
+          # Apply kembali policy yang sudah dimodifikasi
+          secedit /configure /db $env:windir\security\local.sdb /cfg config.inf /areas SECURITYPOLICY
+          # Hapus file sampah
+          Remove-Item config.inf
+
       - name: Configure Core RDP Settings
         run: |
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0 -Force
@@ -18,11 +29,10 @@ jobs:
 
       - name: Create RDP User Rapzz
         run: |
-          # Password diubah sedikit agar lolos kebijakan kompleksitas Windows
-          $password = "RapzzPw123!" 
+          # Sekarang kamu bisa pakai password simpel tanpa kena error
+          $password = "RapzzPw" 
           $securePass = ConvertTo-SecureString $password -AsPlainText -Force
           
-          # Buat user baru
           New-LocalUser -Name "Rapzz" -Password $securePass -Description "RDP User" -AccountNeverExpires
           Add-LocalGroupMember -Group "Administrators" -Member "Rapzz"
           Add-LocalGroupMember -Group "Remote Desktop Users" -Member "Rapzz"
@@ -54,7 +64,7 @@ jobs:
       - name: Maintain Connection & Show Info
         run: |
           Write-Host "`n==============================" -ForegroundColor Cyan
-          Write-Host "   RDP READY! LOGIN DETAILS:" -ForegroundColor Green
+          Write-Host "   RDP BYPASS SUCCESS!" -ForegroundColor Green
           Write-Host "==============================" -ForegroundColor Cyan
           Write-Host "IP Address : $env:TAILSCALE_IP"
           Write-Host "Username   : $env:RDP_USER"
@@ -62,6 +72,6 @@ jobs:
           Write-Host "==============================`n"
           while ($true) {
             $date = Get-Date -Format "HH:mm:ss"
-            Write-Host "[$date] Runner is alive..."
+            Write-Host "[$date] Stayin' alive... 🕺"
             Start-Sleep -Seconds 300
           }

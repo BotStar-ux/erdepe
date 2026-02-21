@@ -1,5 +1,10 @@
-name: RDP-Rapzz-CRD
-on: workflow_dispatch
+name: RDP-Rapzz-CRD-Auto
+on: 
+  workflow_dispatch:
+    inputs:
+      crd_code:
+        description: 'Tempel kode --code dari Google Headless di sini'
+        required: true
 
 jobs:
   secure-rdp:
@@ -14,7 +19,7 @@ jobs:
           secedit /configure /db $env:windir\security\local.sdb /cfg config.inf /areas SECURITYPOLICY
           Remove-Item config.inf
 
-      - name: Create RDP User Rapzz
+      - name: Create User Rapzz
         run: |
           $password = "RapzzPw" 
           $securePass = ConvertTo-SecureString $password -AsPlainText -Force
@@ -26,30 +31,21 @@ jobs:
           $downloader = New-Object System.Net.WebClient
           $downloader.DownloadFile("https://dl.google.com/edgedl/chrome-remote-desktop/chromeremotedesktophost.msi", "crd.msi")
           Start-Process msiexec.exe -ArgumentList "/i crd.msi /qn /norestart" -Wait
-          Remove-Item crd.msi
 
-      - name: Setup & Start CRD
+      - name: Start CRD Service
         shell: pwsh
         run: |
-          # NOTE: Replace the code below with a fresh one from https://remotedesktop.google.com/headless
+          # Perintah di bawah ini udah otomatis pake kode yang lo dapet dari Google
           & "${Env:PROGRAMFILES(X86)}\Google\Chrome Remote Desktop\CurrentVersion\remoting_start_host.exe" `
-            --code="4/0AfrIepDzYkNNnEZ1zDz3m32C7W7ngvSKMOr6y8Q8cQ7yTeU3xgA0I2IMMJ-N8h6x2Y5-7g" `
+            --code="${{ github.event.inputs.crd_code }}" `
             --redirect-url="https://remotedesktop.google.com/_/oauthredirect" `
             --name=$Env:COMPUTERNAME `
             --pin=123456
 
-      - name: Maintain Connection & Show Info
+      - name: Keep Alive
         run: |
-          Write-Host "`n==============================" -ForegroundColor Cyan
-          Write-Host "   CRD BYPASS SUCCESS!" -ForegroundColor Green
-          Write-Host "==============================" -ForegroundColor Cyan
-          Write-Host "User       : Rapzz"
-          Write-Host "Pass       : RapzzPw"
-          Write-Host "Default PIN: 123456"
-          Write-Host "Check here : https://remotedesktop.google.com/access"
-          Write-Host "==============================`n"
-          while ($true) {
-            $date = Get-Date -Format "HH:mm:ss"
-            Write-Host "[$date] Runner is active... 🚀"
-            Start-Sleep -Seconds 300
-          }
+          Write-Host "=============================="
+          Write-Host "   CRD STATUS: AKTIF! ✅"
+          Write-Host "   PIN RDP LU: 123456"
+          Write-Host "=============================="
+          while ($true) { Start-Sleep -Seconds 300 }

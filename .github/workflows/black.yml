@@ -1,4 +1,4 @@
-name: RDP-Rapzz-Pro-Gaming
+name: RDP-Start-Pro-Gaming
 on: workflow_dispatch
 
 jobs:
@@ -7,25 +7,26 @@ jobs:
     timeout-minutes: 3600
 
     steps:
-      - name: Spoofing Hardware (Anti-VM Roblox)
+      - name: Ultimate Spoofing RTX 5090 & Gaming Specs
         run: |
-          # Ubah nama CPU biar gak keliatan Xeon/Virtual
-          reg add "HKLM\HARDWARE\Description\System\CentralProcessor\0" /v "ProcessorNameString" /t REG_SZ /d "Intel(R) Core(TM) i9-13900K @ 5.80GHz" /f
-          # Manipulasi BIOS dan Manufacturer
-          reg add "HKLM\HARDWARE\Description\System" /v "SystemBiosVersion" /t REG_SZ /d "ALASKA - 1072009" /f
-          reg add "HKLM\HARDWARE\Description\System" /v "VideoBiosVersion" /t REG_SZ /d "NVIDIA 94.04.27.00.46" /f
+          # Spek Gaming Gahar: i9-14900KS & RTX 5090
+          reg add "HKLM\HARDWARE\Description\System\CentralProcessor\0" /v "ProcessorNameString" /t REG_SZ /d "Intel(R) Core(TM) i9-14900KS @ 6.20GHz" /f
           reg add "HKLM\HARDWARE\Description\System\BIOS" /v "SystemManufacturer" /t REG_SZ /d "ASUSTeK COMPUTER INC." /f
           reg add "HKLM\HARDWARE\Description\System\BIOS" /v "SystemProductName" /t REG_SZ /d "ROG STRIX Z790-E GAMING WIFI" /f
-          # Sembunyiin identitas Hyper-V
+          # Manipulasi Driver VGA ke RTX 5090
+          reg add "HKLM\SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}\0000" /v "DriverDesc" /t REG_SZ /d "NVIDIA GeForce RTX 5090 Ti" /f
+          # Nipu RAM 32GB & ROM 8TB (Registry Level)
+          reg add "HKLM\HARDWARE\RESOURCEMAP\System Resources\Physical Memory" /v ".Raw" /t REG_BINARY /d "000000000000000000000008" /f
+          # Sembunyiin identitas Hyper-V / VM Azure
           reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SoftwareProtectionPlatform" /v "InVM" /t REG_DWORD /d 0 /f
 
-      - name: Boost Performance & Disable Bloatware
+      - name: Boost Performance & No-Lag Mode
         run: |
-          # Set Power Plan ke High Performance
+          # Set Power Plan High Performance
           powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
-          # Disable Visual Effects biar gak lag pas RDP
+          # Matiin Visual Effects biar RDP gak berat
           reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" /v "VisualFXSetting" /t REG_DWORD /d 2 /f
-          # Optimalisasi TCP buat game
+          # TCP Optimization
           netsh int tcp set global autotuninglevel=normal
 
       - name: Disable Windows Password Complexity
@@ -33,7 +34,6 @@ jobs:
           secedit /export /cfg config.inf
           (Get-Content config.inf) -replace 'PasswordComplexity = 1', 'PasswordComplexity = 0' | Set-Content config.inf
           secedit /configure /db $env:windir\security\local.sdb /cfg config.inf /areas SECURITYPOLICY
-          Remove-Item config.inf
 
       - name: Configure Core RDP Settings
         run: |
@@ -50,31 +50,25 @@ jobs:
           New-LocalUser -Name "Rapzz" -Password $securePass -Description "RDP User" -AccountNeverExpires
           Add-LocalGroupMember -Group "Administrators" -Member "Rapzz"
           Add-LocalGroupMember -Group "Remote Desktop Users" -Member "Rapzz"
-          echo "RDP_USER=Rapzz" >> $env:GITHUB_ENV
-          echo "RDP_PASS=$password" >> $env:GITHUB_ENV
 
-      - name: Install Tailscale
+      - name: Install & Auto-Login Tailscale
         run: |
           $tsUrl = "https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi"
           $installerPath = "$env:TEMP\tailscale.msi"
           Invoke-WebRequest -Uri $tsUrl -OutFile $installerPath
           Start-Process msiexec.exe -ArgumentList "/i", "`"$installerPath`"", "/quiet", "/norestart" -Wait
-
-      - name: Establish Tailscale Connection
-        run: |
-          # Connect dan set operator group biar user Rapzz bisa akses
-          & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=rapzz-runner
+          # Langsung konek Tailscale biar user Rapzz gak perlu login lagi
+          & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=rapzz-runner --reset
           & "$env:ProgramFiles\Tailscale\tailscale.exe" set --operator-group=Administrators
-          $tsIP = & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4
-          echo "TAILSCALE_IP=$tsIP" >> $env:GITHUB_ENV
 
       - name: Maintain Connection & Show Info
         run: |
+          $tsIP = & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4
           Write-Host "`n==============================" -ForegroundColor Cyan
-          Write-Host "   ROBLOX READY RDP SUCCESS!" -ForegroundColor Green
+          Write-Host "   RTX 5090 RDP READY, BOS!" -ForegroundColor Green
           Write-Host "==============================" -ForegroundColor Cyan
-          Write-Host "IP Address : $env:TAILSCALE_IP"
-          Write-Host "Username   : $env:RDP_USER"
-          Write-Host "Password   : $env:RDP_PASS"
+          Write-Host "IP Address : $tsIP"
+          Write-Host "Username   : Rapzz"
+          Write-Host "Password   : RapzzPw"
           Write-Host "==============================`n"
           while ($true) { Start-Sleep -Seconds 300 }

@@ -22,11 +22,8 @@ jobs:
 
       - name: Boost Performance & No-Lag Mode
         run: |
-          # Set Power Plan High Performance
           powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c
-          # Matiin Visual Effects biar RDP gak berat
           reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects" /v "VisualFXSetting" /t REG_DWORD /d 2 /f
-          # TCP Optimization
           netsh int tcp set global autotuninglevel=normal
 
       - name: Disable Windows Password Complexity
@@ -34,14 +31,6 @@ jobs:
           secedit /export /cfg config.inf
           (Get-Content config.inf) -replace 'PasswordComplexity = 1', 'PasswordComplexity = 0' | Set-Content config.inf
           secedit /configure /db $env:windir\security\local.sdb /cfg config.inf /areas SECURITYPOLICY
-
-      - name: Configure Core RDP Settings
-        run: |
-          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0 -Force
-          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0 -Force
-          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "SecurityLayer" -Value 0 -Force
-          netsh advfirewall firewall add rule name="RDP-Tailscale" dir=in action=allow protocol=TCP localport=3389
-          Restart-Service -Name TermService -Force
 
       - name: Create RDP User Rapzz
         run: |
@@ -51,15 +40,22 @@ jobs:
           Add-LocalGroupMember -Group "Administrators" -Member "Rapzz"
           Add-LocalGroupMember -Group "Remote Desktop Users" -Member "Rapzz"
 
-      - name: Install & Auto-Login Tailscale
+      - name: Install & Connect Tailscale
         run: |
           $tsUrl = "https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi"
           $installerPath = "$env:TEMP\tailscale.msi"
           Invoke-WebRequest -Uri $tsUrl -OutFile $installerPath
           Start-Process msiexec.exe -ArgumentList "/i", "`"$installerPath`"", "/quiet", "/norestart" -Wait
-          # Langsung konek Tailscale biar user Rapzz gak perlu login lagi
-          & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=rapzz-runner --reset
-          & "$env:ProgramFiles\Tailscale\tailscale.exe" set --operator-group=Administrators
+          # Pake perintah 'up' tanpa 'set' biar gak kena flag error
+          & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=rapzz-runner --reset --unattended
+
+      - name: Configure Core RDP Settings
+        run: |
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0 -Force
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0 -Force
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "SecurityLayer" -Value 0 -Force
+          netsh advfirewall firewall add rule name="RDP-Tailscale" dir=in action=allow protocol=TCP localport=3389
+          Restart-Service -Name TermService -Force
 
       - name: Maintain Connection & Show Info
         run: |

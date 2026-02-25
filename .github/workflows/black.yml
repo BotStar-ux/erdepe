@@ -1,4 +1,4 @@
-Name: RDP-Rapzz-Pro-Gaming
+name: RDP-Rapzz-Pro-Gaming
 on: workflow_dispatch
 
 jobs:
